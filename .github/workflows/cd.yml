@@ -230,5 +230,7 @@ jobs:
           fi
 
       - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm publish ${{ steps.pkg.outputs.flags }} --provenance
