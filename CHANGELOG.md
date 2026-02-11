@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.0] - 2026-02-11
+
 ### Added
 - Initial release of `@plasius/gpu-camera`.
 - Multi-camera registry with deterministic active-camera switching.
@@ -18,3 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - N/A
+
+
+[0.1.0]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.0
