@@ -1,6 +1,6 @@
 {
   "name": "@plasius/gpu-camera",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic multi-camera control runtime with parallel multiview planning.",
   "type": "module",
   "sideEffects": false,
