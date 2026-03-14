@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Updated GitHub Actions workflows to run JavaScript actions on Node 24 and
+    refreshed core workflow action versions.
 
 - **Fixed**
   - (placeholder)
