@@ -3,6 +3,8 @@ import { createCameraManager } from "../src/index.js";
 const output = document.querySelector("#output");
 const switchButton = document.querySelector("#switch");
 const multiviewButton = document.querySelector("#multiview");
+const displayBadge = document.querySelector("#displayBadge");
+const displayDetails = document.querySelector("#displayDetails");
 
 const manager = createCameraManager({
   maxParallelViews: 2,
@@ -77,9 +79,24 @@ function serializePlan(plan) {
   };
 }
 
+function setDisplayState(badge, details) {
+  if (displayBadge) {
+    displayBadge.textContent = badge;
+  }
+  if (displayDetails) {
+    displayDetails.textContent = details;
+  }
+}
+
 function render() {
   const snapshot = manager.getSnapshot();
   const singlePlan = manager.createRenderPlan({ mode: "single" });
+
+  setDisplayState(
+    "State-only demo",
+    `No 3D canvas is mounted here. Active camera: ${snapshot.activeCameraId}. ` +
+      `This demo shows camera registration and render-plan state only.`
+  );
 
   output.textContent = JSON.stringify(
     {
@@ -105,6 +122,10 @@ switchButton.addEventListener("click", () => {
 
 multiviewButton.addEventListener("click", () => {
   const plan = manager.createRenderPlan({ mode: "multiview" });
+  setDisplayState(
+    "State-only demo",
+    `No 3D canvas is mounted here. Multiview plan prepared with ${plan.batches.length} batch(es).`
+  );
   output.textContent = JSON.stringify(serializePlan(plan), null, 2);
 });
 

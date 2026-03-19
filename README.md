@@ -101,6 +101,10 @@ npm run demo
 
 Then open `http://localhost:8000/gpu-camera/demo/`.
 
+The demo is intentionally state-first rather than a renderer surface. It does
+not mount a 3D canvas; it shows camera registry state and generated render
+plans.
+
 ## Files
 
 - `src/index.js`: camera manager, controls, matrix/uniform helpers, render planner.

@@ -20,6 +20,35 @@ h1 {
   font-size: 1.9rem;
 }
 
+.display-state {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: rgba(7, 11, 16, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.display-state h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.display-badge {
+  display: inline-flex;
+  margin: 0 0 0.4rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(60, 129, 205, 0.22);
+  border: 1px solid rgba(90, 156, 222, 0.35);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.display-details {
+  margin: 0;
+  color: rgba(232, 238, 247, 0.82);
+}
+
 .controls {
   display: flex;
   gap: 0.75rem;
