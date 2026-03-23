@@ -1,132 +1,145 @@
-import { createCameraManager } from "../src/index.js";
+import { createCameraManager } from "../dist/index.js";
+import { mountGpuShowcase } from "../node_modules/@plasius/gpu-shared/dist/index.js";
 
-const output = document.querySelector("#output");
-const switchButton = document.querySelector("#switch");
-const multiviewButton = document.querySelector("#multiview");
-const displayBadge = document.querySelector("#displayBadge");
-const displayDetails = document.querySelector("#displayDetails");
+const root = globalThis.document?.getElementById("app");
+if (!root) {
+  throw new Error("Camera demo root element was not found.");
+}
 
-const manager = createCameraManager({
-  maxParallelViews: 2,
-  maxHotCameras: 3,
-});
+function registerCamera(manager, camera) {
+  manager.registerCamera(camera);
+}
 
-manager.registerCamera({
-  id: "main",
-  priority: 100,
-  transform: {
-    position: [0, 3, 8],
-    target: [0, 0, 0],
-    up: [0, 1, 0],
-  },
-  projection: {
-    kind: "perspective",
-    fovY: 60,
-    near: 0.1,
-    far: 1500,
-    aspect: 16 / 9,
-  },
-});
+function createState() {
+  const manager = createCameraManager({
+    maxParallelViews: 2,
+    maxHotCameras: 3,
+  });
 
-manager.registerCamera({
-  id: "map",
-  priority: 40,
-  transform: {
-    position: [0, 35, 0],
-    target: [0, 0, 0],
-    up: [0, 0, -1],
-  },
-  projection: {
-    kind: "orthographic",
-    left: -40,
-    right: 40,
-    top: 40,
-    bottom: -40,
-    near: 0.1,
-    far: 200,
-  },
-  viewport: { x: 0.72, y: 0.72, width: 0.26, height: 0.26 },
-});
+  registerCamera(manager, {
+    id: "main",
+    priority: 100,
+    transform: {
+      position: [0, 3, 8],
+      target: [0, 0, 0],
+      up: [0, 1, 0],
+    },
+    projection: {
+      kind: "perspective",
+      fovY: 60,
+      near: 0.1,
+      far: 1500,
+      aspect: 16 / 9,
+    },
+  });
 
-manager.registerCamera({
-  id: "rear",
-  priority: 80,
-  transform: {
-    position: [0, 2, -7],
-    target: [0, 0, 0],
-    up: [0, 1, 0],
-  },
-  projection: {
-    kind: "perspective",
-    fovY: 70,
-    near: 0.1,
-    far: 1000,
-    aspect: 16 / 9,
-  },
-});
+  registerCamera(manager, {
+    id: "map",
+    priority: 40,
+    transform: {
+      position: [0, 35, 0],
+      target: [0, 0, 0],
+      up: [0, 0, -1],
+    },
+    projection: {
+      kind: "orthographic",
+      left: -40,
+      right: 40,
+      top: 40,
+      bottom: -40,
+      near: 0.1,
+      far: 200,
+      aspect: 1,
+    },
+    viewport: { x: 0.72, y: 0.72, width: 0.26, height: 0.26 },
+  });
 
-function serializePlan(plan) {
+  registerCamera(manager, {
+    id: "rear",
+    priority: 80,
+    transform: {
+      position: [0, 2, -7],
+      target: [0, 0, 0],
+      up: [0, 1, 0],
+    },
+    projection: {
+      kind: "perspective",
+      fovY: 70,
+      near: 0.1,
+      far: 1000,
+      aspect: 16 / 9,
+    },
+  });
+
   return {
-    ...plan,
-    batches: plan.batches.map((batch) => ({
-      ...batch,
-      views: batch.views.map((view) => ({
-        ...view,
-        viewMatrix: view.viewMatrix ? "Float32Array(16)" : undefined,
-        projectionMatrix: view.projectionMatrix ? "Float32Array(16)" : undefined,
-      })),
-    })),
+    activeCameraId: "main",
+    manager,
   };
 }
 
-function setDisplayState(badge, details) {
-  if (displayBadge) {
-    displayBadge.textContent = badge;
+function updateState(state, scene) {
+  const sequence = ["main", "rear", "map"];
+  const nextId = sequence[Math.floor(scene.time / 4) % sequence.length];
+  if (state.activeCameraId !== nextId) {
+    state.manager.activateCamera(nextId);
+    state.activeCameraId = nextId;
   }
-  if (displayDetails) {
-    displayDetails.textContent = details;
-  }
+  return state;
 }
 
-function render() {
-  const snapshot = manager.getSnapshot();
-  const singlePlan = manager.createRenderPlan({ mode: "single" });
+function describeState(state, scene) {
+  const snapshot = state.manager.getSnapshot();
+  const singlePlan = state.manager.createRenderPlan({ mode: "single" });
+  const multiviewPlan = state.manager.createRenderPlan({ mode: "multiview" });
 
-  setDisplayState(
-    "State-only demo",
-    `No 3D canvas is mounted here. Active camera: ${snapshot.activeCameraId}. ` +
-      `This demo shows camera registration and render-plan state only.`
-  );
-
-  output.textContent = JSON.stringify(
-    {
+  return {
+    status: `Camera live · ${snapshot.activeCameraId} active`,
+    details:
+      "The shared harbor scene stays mounted while gpu-camera changes the active view, hot camera set, and multiview batches over time.",
+    sceneMetrics: [
+      `active camera: ${snapshot.activeCameraId}`,
+      `registered cameras: ${snapshot.cameras.length}`,
+      `hot cameras: ${snapshot.hotCameraIds.join(", ")}`,
+      `parallel views: ${snapshot.maxParallelViews}`,
+    ],
+    qualityMetrics: [
+      `single-view batches: ${singlePlan.batches.length}`,
+      `multiview batches: ${multiviewPlan.batches.length}`,
+      `multiview total views: ${multiviewPlan.totalViews}`,
+      `map viewport: ${snapshot.cameras.find((camera) => camera.id === "map")?.viewport?.width ?? 0} width`,
+    ],
+    debugMetrics: [
+      `scene ships: ${scene.ships.length}`,
+      `stress mode: ${scene.stress ? "on" : "off"}`,
+      `collisions: ${scene.collisions}`,
+      `render-plan mode: ${snapshot.activeCameraId === "map" ? "overview" : "hero"}`,
+    ],
+    notes: [
+      "The 3D surface comes from the shared gpu-shared harbor runtime, not a package-local renderer copy.",
+      "gpu-camera remains responsible for active-view choice, camera priority, and multiview planning.",
+      "The active camera rotates through hero, rear, and map views so the scene proves those transitions on a live 3D surface.",
+    ],
+    textState: {
       activeCameraId: snapshot.activeCameraId,
       hotCameraIds: snapshot.hotCameraIds,
-      cameras: snapshot.cameras.map((camera) => ({
-        id: camera.id,
-        priority: camera.priority,
-        enabled: camera.enabled,
-        viewport: camera.viewport,
-      })),
-      singlePlan: serializePlan(singlePlan),
+      multiviewBatches: multiviewPlan.batches.length,
     },
-    null,
-    2
-  );
+    visuals: {
+      flagMotion: snapshot.activeCameraId === "map" ? 0.46 : 0.58,
+      reflectionStrength: snapshot.activeCameraId === "rear" ? 0.2 : 0.14,
+      shadowAccent: snapshot.activeCameraId === "main" ? 0.08 : 0.05,
+      waveAmplitude: snapshot.activeCameraId === "map" ? 0.82 : 0.68,
+    },
+  };
 }
 
-switchButton.addEventListener("click", () => {
-  manager.switchCamera(1);
-  render();
+await mountGpuShowcase({
+  root,
+  packageName: "@plasius/gpu-camera",
+  title: "Multi-Camera Harbor Validation",
+  subtitle:
+    "A shared 3D harbor surface driven by gpu-camera view selection, hot camera promotion, and multiview planning.",
+  createState,
+  updateState,
+  describeState,
 });
-
-multiviewButton.addEventListener("click", () => {
-  const plan = manager.createRenderPlan({ mode: "multiview" });
-  setDisplayState(
-    "State-only demo",
-    `No 3D canvas is mounted here. Multiview plan prepared with ${plan.batches.length} batch(es).`
-  );
-  output.textContent = JSON.stringify(serializePlan(plan), null, 2);
-});
-
-render();
