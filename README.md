@@ -101,9 +101,11 @@ npm run demo
 
 Then open `http://localhost:8000/gpu-camera/demo/`.
 
-The demo is intentionally state-first rather than a renderer surface. It does
-not mount a 3D canvas; it shows camera registry state and generated render
-plans.
+The demo mounts the shared `@plasius/gpu-shared` 3D harbor surface and rotates
+through hero, rear, and map camera rigs over time. The overlay shows the active
+camera, hot camera set, and multiview batch planning so the package proves its
+runtime behavior on a live browser-rendered scene instead of a package-local
+renderer copy.
 
 ## Files
 

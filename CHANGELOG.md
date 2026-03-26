@@ -8,13 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
-  - (placeholder)
+  - Contract tests that keep the demo on the public `@plasius/gpu-shared`
+    browser import surface.
 
 - **Changed**
-  - (placeholder)
+  - Updated the demo documentation to describe the live 3D harbor validation
+    scene and camera switching behavior.
 
 - **Fixed**
-  - (placeholder)
+  - Removed the demo's deep import of `@plasius/gpu-shared` internals in favor
+    of an import-map-backed package import.
 
 - **Security**
   - (placeholder)

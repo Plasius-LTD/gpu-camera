@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -191,4 +192,26 @@ test("standalone render plan supports explicit cameraIds selection", () => {
   assert.equal(plan.batches[0].views[1].cameraId, "c");
   assert.equal(plan.batches[0].views[0].hot, true);
   assert.equal(plan.batches[0].views[0].viewMatrix, undefined);
+});
+
+test("demo imports gpu-shared through the public package surface", () => {
+  const demoSource = readFileSync(new URL("../demo/main.js", import.meta.url), "utf8");
+  const demoHtml = readFileSync(new URL("../demo/index.html", import.meta.url), "utf8");
+
+  assert.match(demoSource, /from "@plasius\/gpu-shared"/);
+  assert.doesNotMatch(demoSource, /node_modules\/@plasius\/gpu-shared\/dist/);
+  assert.match(demoHtml, /<script type="importmap">/);
+  assert.match(
+    demoHtml,
+    /"@plasius\/gpu-shared"\s*:\s*"\.\.\/node_modules\/@plasius\/gpu-shared\/dist\/index\.js"/,
+  );
+});
+
+test("README documents the live 3D harbor validation demo", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+
+  assert.match(readme, /mounts the shared `@plasius\/gpu-shared` 3D harbor surface/i);
+  assert.match(readme, /hero, rear, and map camera rigs/i);
+  assert.doesNotMatch(readme, /state-first rather than a renderer surface/i);
+  assert.doesNotMatch(readme, /does not mount a 3D canvas/i);
 });
