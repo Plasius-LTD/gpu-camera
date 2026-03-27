@@ -117,7 +117,7 @@ function describeState(state, scene) {
     notes: [
       "The 3D surface comes from the shared gpu-shared harbor runtime, not a package-local renderer copy.",
       "gpu-camera remains responsible for active-view choice, camera priority, and multiview planning.",
-      "The active camera rotates through hero, rear, and map views so the scene proves those transitions on a live 3D surface.",
+      "The active camera rotates through hero, rear, and map views so the moonlit harbor proves those transitions on a live 3D surface.",
     ],
     textState: {
       activeCameraId: snapshot.activeCameraId,
@@ -138,7 +138,7 @@ await mountGpuShowcase({
   packageName: "@plasius/gpu-camera",
   title: "Multi-Camera Harbor Validation",
   subtitle:
-    "A shared 3D harbor surface driven by gpu-camera view selection, hot camera promotion, and multiview planning.",
+    "A moonlit shared harbor surface driven by gpu-camera view selection, hot camera promotion, and multiview planning.",
   createState,
   updateState,
   describeState,
