@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security**
   - (placeholder)
 
+## [0.1.9] - 2026-05-13
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
 ## [0.1.8] - 2026-04-02
 
 - **Added**
@@ -172,3 +186,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.6]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.6
 [0.1.7]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.7
 [0.1.8]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.8
+[0.1.9]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.9
