@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.14] - 2026-06-22
+
+- **Added**
   - Added `toRayCameraUniform` and `buildPrimaryRay` helpers so renderers can
     derive deterministic perspective and orthographic primary rays from screen
     pixels or texels.
@@ -219,3 +233,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.9]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.9
 [0.1.10]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.10
 [0.1.13]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.13
+[0.1.14]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.14
