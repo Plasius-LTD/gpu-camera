@@ -96,6 +96,20 @@ function cloneViewport(viewport = DEFAULT_VIEWPORT) {
   };
 }
 
+function normalizeViewportSize(viewportSize = {}, fallbackViewport = DEFAULT_VIEWPORT) {
+  return {
+    width: Math.max(EPSILON, finiteNumber(viewportSize.width, fallbackViewport.width || 1)),
+    height: Math.max(EPSILON, finiteNumber(viewportSize.height, fallbackViewport.height || 1)),
+  };
+}
+
+function normalizeJitter(jitter = {}) {
+  return {
+    x: finiteNumber(jitter.x, 0),
+    y: finiteNumber(jitter.y, 0),
+  };
+}
+
 function normalizeProjection(projection = {}) {
   const kind = cameraProjectionKinds.includes(projection.kind)
     ? projection.kind
@@ -260,6 +274,57 @@ function buildOrthographicMatrix(projection, overrideAspect) {
   ]);
 }
 
+function resolveCameraBasis(transform) {
+  const eye = transform.position;
+  const target = transform.target;
+  const up = normalizeVec3(transform.up, DEFAULT_UP);
+
+  let backward = normalizeVec3(subVec3(eye, target), [0, 0, 1]);
+  let right = normalizeVec3(crossVec3(up, backward), [1, 0, 0]);
+  let cameraUp = crossVec3(backward, right);
+
+  if (lengthVec3(right) <= EPSILON) {
+    backward = [0, 0, 1];
+    right = [1, 0, 0];
+    cameraUp = [0, 1, 0];
+  }
+
+  return {
+    right,
+    up: normalizeVec3(cameraUp, DEFAULT_UP),
+    backward,
+    forward: scaleVec3(backward, -1),
+  };
+}
+
+function resolveAspectRatio(projection, viewportSize, overrideAspectRatio) {
+  const viewportAspect = viewportSize.width / viewportSize.height;
+  return Math.max(
+    EPSILON,
+    finiteNumber(overrideAspectRatio, viewportAspect || projection.aspect || 1)
+  );
+}
+
+function resolveOrthographicBounds(projection, aspectRatio) {
+  let left = projection.left;
+  let right = projection.right;
+  const bottom = projection.bottom;
+  const top = projection.top;
+
+  if (finiteNumber(projection.aspect, 0) > EPSILON) {
+    const scale = aspectRatio / projection.aspect;
+    left *= scale;
+    right *= scale;
+  }
+
+  return {
+    left,
+    right,
+    bottom,
+    top,
+  };
+}
+
 export function buildProjectionMatrix(camera, overrideAspect) {
   const projection = normalizeProjection(camera?.projection);
   if (projection.kind === "orthographic") {
@@ -271,18 +336,10 @@ export function buildProjectionMatrix(camera, overrideAspect) {
 export function buildViewMatrix(camera) {
   const transform = normalizeTransform(camera?.transform);
   const eye = transform.position;
-  const target = transform.target;
-  const up = normalizeVec3(transform.up, DEFAULT_UP);
-
-  let zAxis = normalizeVec3(subVec3(eye, target), [0, 0, 1]);
-  let xAxis = normalizeVec3(crossVec3(up, zAxis), [1, 0, 0]);
-  let yAxis = crossVec3(zAxis, xAxis);
-
-  if (lengthVec3(xAxis) <= EPSILON) {
-    zAxis = [0, 0, 1];
-    xAxis = [1, 0, 0];
-    yAxis = [0, 1, 0];
-  }
+  const basis = resolveCameraBasis(transform);
+  const xAxis = basis.right;
+  const yAxis = basis.up;
+  const zAxis = basis.backward;
 
   return new Float32Array([
     xAxis[0],
@@ -319,6 +376,115 @@ export function toCameraUniform(camera, overrideAspect) {
     near: normalized.projection.near,
     far: normalized.projection.far,
     projectionKind: normalized.projection.kind,
+  };
+}
+
+export function toRayCameraUniform(camera, options = {}) {
+  const normalized = {
+    id: String(camera?.id ?? ""),
+    viewport: cloneViewport(camera?.viewport),
+    transform: normalizeTransform(camera?.transform),
+    projection: normalizeProjection(camera?.projection),
+  };
+  const viewportSize = normalizeViewportSize(options.viewportSize, normalized.viewport);
+  const jitter = normalizeJitter(options.jitter);
+  const aspectRatio = resolveAspectRatio(
+    normalized.projection,
+    viewportSize,
+    options.aspectRatio
+  );
+  const basis = resolveCameraBasis(normalized.transform);
+  const projectionBounds =
+    normalized.projection.kind === "orthographic"
+      ? resolveOrthographicBounds(normalized.projection, aspectRatio)
+      : { left: 0, right: 0, bottom: 0, top: 0 };
+
+  return {
+    id: normalized.id,
+    projectionKind: normalized.projection.kind,
+    origin: new Float32Array(normalized.transform.position),
+    forward: new Float32Array(basis.forward),
+    right: new Float32Array(basis.right),
+    up: new Float32Array(basis.up),
+    viewportSize: new Float32Array([viewportSize.width, viewportSize.height]),
+    aspectRatio,
+    jitter: new Float32Array([jitter.x, jitter.y]),
+    near: normalized.projection.near,
+    far: normalized.projection.far,
+    fovY:
+      normalized.projection.kind === "perspective"
+        ? normalized.projection.fovY
+        : 0,
+    orthographicBounds: new Float32Array([
+      projectionBounds.left,
+      projectionBounds.right,
+      projectionBounds.bottom,
+      projectionBounds.top,
+    ]),
+    orthographicSize: new Float32Array([
+      projectionBounds.right - projectionBounds.left,
+      projectionBounds.top - projectionBounds.bottom,
+    ]),
+  };
+}
+
+export function buildPrimaryRay(rayCamera, sample = {}) {
+  const origin = cloneVec3(Array.from(rayCamera?.origin ?? []), [0, 0, 0]);
+  const forward = normalizeVec3(Array.from(rayCamera?.forward ?? []), [0, 0, -1]);
+  const right = normalizeVec3(Array.from(rayCamera?.right ?? []), [1, 0, 0]);
+  const up = normalizeVec3(Array.from(rayCamera?.up ?? []), DEFAULT_UP);
+  const viewportWidth = Math.max(EPSILON, finiteNumber(rayCamera?.viewportSize?.[0], 1));
+  const viewportHeight = Math.max(EPSILON, finiteNumber(rayCamera?.viewportSize?.[1], 1));
+  const jitterX = finiteNumber(rayCamera?.jitter?.[0], 0);
+  const jitterY = finiteNumber(rayCamera?.jitter?.[1], 0);
+  const pixelX = finiteNumber(sample.pixelX, 0) + 0.5 + jitterX;
+  const pixelY = finiteNumber(sample.pixelY, 0) + 0.5 + jitterY;
+  const near = Math.max(EPSILON, finiteNumber(rayCamera?.near, 0.1));
+  const far = Math.max(near + EPSILON, finiteNumber(rayCamera?.far, near + 1));
+  const projectionKind =
+    rayCamera?.projectionKind === "orthographic" ? "orthographic" : "perspective";
+
+  if (projectionKind === "orthographic") {
+    const left = finiteNumber(rayCamera?.orthographicBounds?.[0], -0.5);
+    const rightBound = finiteNumber(rayCamera?.orthographicBounds?.[1], 0.5);
+    const bottom = finiteNumber(rayCamera?.orthographicBounds?.[2], -0.5);
+    const top = finiteNumber(rayCamera?.orthographicBounds?.[3], 0.5);
+    const originX = left + (pixelX / viewportWidth) * (rightBound - left);
+    const originY = top - (pixelY / viewportHeight) * (top - bottom);
+    const shiftedOrigin = addVec3(
+      addVec3(origin, scaleVec3(right, originX)),
+      scaleVec3(up, originY)
+    );
+
+    return {
+      origin: new Float32Array(shiftedOrigin),
+      direction: new Float32Array(forward),
+      near,
+      far,
+      projectionKind,
+    };
+  }
+
+  const aspectRatio = Math.max(EPSILON, finiteNumber(rayCamera?.aspectRatio, 1));
+  const fovY = clamp(finiteNumber(rayCamera?.fovY, 60), 1, 179);
+  const tanHalfFovY = Math.tan((fovY * Math.PI) / 360);
+  const tanHalfFovX = tanHalfFovY * aspectRatio;
+  const ndcX = (pixelX / viewportWidth) * 2 - 1;
+  const ndcY = 1 - (pixelY / viewportHeight) * 2;
+  const direction = normalizeVec3(
+    addVec3(
+      addVec3(forward, scaleVec3(right, ndcX * tanHalfFovX)),
+      scaleVec3(up, ndcY * tanHalfFovY)
+    ),
+    [0, 0, -1]
+  );
+
+  return {
+    origin: new Float32Array(origin),
+    direction: new Float32Array(direction),
+    near,
+    far,
+    projectionKind,
   };
 }
 
