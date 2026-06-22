@@ -18,7 +18,8 @@ provides deterministic camera orchestration with:
 - camera registration and lifecycle,
 - low-latency active camera switching,
 - parallel multiview render planning,
-- control primitives (orbit/pan/dolly) that do not depend on Three.js.
+- control primitives (orbit/pan/dolly) that do not depend on Three.js,
+- ray-ready camera uniforms that map screen pixels or texels to primary rays.
 
 Apache-2.0. ESM + CJS builds.
 
@@ -31,7 +32,11 @@ npm install @plasius/gpu-camera
 ## Usage
 
 ```js
-import { createCameraManager } from "@plasius/gpu-camera";
+import {
+  buildPrimaryRay,
+  createCameraManager,
+  toRayCameraUniform,
+} from "@plasius/gpu-camera";
 
 const cameras = createCameraManager({
   maxParallelViews: 2,
@@ -79,6 +84,12 @@ cameras.activateCamera("main");
 
 // build a parallel render plan for multi-view
 const plan = cameras.createRenderPlan({ mode: "multiview" });
+
+const rayCamera = toRayCameraUniform(cameras.getCamera("main"), {
+  viewportSize: { width: 1920, height: 1080 },
+  jitter: { x: 0.25, y: -0.25 },
+});
+const centerRay = buildPrimaryRay(rayCamera, { pixelX: 959, pixelY: 539 });
 ```
 
 ## API
@@ -89,6 +100,8 @@ const plan = cameras.createRenderPlan({ mode: "multiview" });
 - `buildViewMatrix(camera)`
 - `buildProjectionMatrix(camera, overrideAspect)`
 - `toCameraUniform(camera, overrideAspect)`
+- `toRayCameraUniform(camera, options)`
+- `buildPrimaryRay(rayCamera, sample)`
 
 ## Demo
 

@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
-  - (placeholder)
+  - Added `toRayCameraUniform` and `buildPrimaryRay` helpers so renderers can
+    derive deterministic perspective and orthographic primary rays from screen
+    pixels or texels.
 
 - **Changed**
   - (placeholder)

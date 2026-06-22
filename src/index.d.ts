@@ -95,6 +95,46 @@ export interface CameraUniform {
   projectionKind: CameraProjection["kind"];
 }
 
+export interface RayViewportSize {
+  width: number;
+  height: number;
+}
+
+export interface RayJitter {
+  x?: number;
+  y?: number;
+}
+
+export interface RayCameraUniform {
+  id: string;
+  projectionKind: CameraProjection["kind"];
+  origin: Float32Array;
+  forward: Float32Array;
+  right: Float32Array;
+  up: Float32Array;
+  viewportSize: Float32Array;
+  aspectRatio: number;
+  jitter: Float32Array;
+  near: number;
+  far: number;
+  fovY: number;
+  orthographicBounds: Float32Array;
+  orthographicSize: Float32Array;
+}
+
+export interface PrimaryRay {
+  origin: Float32Array;
+  direction: Float32Array;
+  near: number;
+  far: number;
+  projectionKind: CameraProjection["kind"];
+}
+
+export interface PrimaryRaySample {
+  pixelX: number;
+  pixelY: number;
+}
+
 export interface RenderPlanView {
   cameraId: string;
   order: number;
@@ -194,6 +234,20 @@ export function toCameraUniform(
   camera: Pick<CameraState, "id" | "transform" | "projection">,
   overrideAspect?: number
 ): CameraUniform;
+
+export function toRayCameraUniform(
+  camera: Pick<CameraState, "id" | "transform" | "projection" | "viewport">,
+  options?: {
+    viewportSize?: Partial<RayViewportSize>;
+    jitter?: RayJitter;
+    aspectRatio?: number;
+  }
+): RayCameraUniform;
+
+export function buildPrimaryRay(
+  rayCamera: RayCameraUniform,
+  sample: PrimaryRaySample
+): PrimaryRay;
 
 export function applyCameraControl(
   camera: CameraDefinition,
