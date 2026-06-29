@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Refreshed the direct dependency baselines to `@plasius/gpu-shared@^1.0.1`,
+    `eslint@^10.6.0`, and `globals@^17.7.0`, and regenerated
+    `package-lock.json` from a clean Node 24 install.
 
 - **Fixed**
   - (placeholder)
