@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (placeholder)
 
 - **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.16] - 2026-06-29
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
   - Refreshed the direct dependency baselines to `@plasius/gpu-shared@^1.0.1`,
     `eslint@^10.6.0`, and `globals@^17.7.0`, and regenerated
     `package-lock.json` from a clean Node 24 install.
@@ -251,3 +265,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.13]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.13
 [0.1.14]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.14
 [0.1.15]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.15
+[0.1.16]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.16
