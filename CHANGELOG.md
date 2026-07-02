@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.17] - 2026-07-02
+
+- **Added**
   - Added framework-agnostic animated character camera rig modes, including
     editor, spectator, third-person, and first-person views.
   - Added `resolveCameraRigFrame(...)`, `cameraViewModes`, `look` camera
@@ -269,3 +283,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.14]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.14
 [0.1.15]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.15
 [0.1.16]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.16
+[0.1.17]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.17
