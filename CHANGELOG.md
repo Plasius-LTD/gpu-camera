@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
-  - (placeholder)
+  - Added framework-agnostic animated character camera rig modes, including
+    editor, spectator, third-person, and first-person views.
+  - Added `resolveCameraRigFrame(...)`, `cameraViewModes`, `look` camera
+    control input, and head-look intent output for renderer animation systems.
 
 - **Changed**
   - (placeholder)

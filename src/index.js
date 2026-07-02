@@ -19,7 +19,26 @@ export const cameraControlKinds = Object.freeze([
   "pan",
   "truck",
   "dolly",
+  "look",
 ]);
+
+export const cameraViewModes = Object.freeze([
+  "editor",
+  "spectator",
+  "third-person",
+  "first-person",
+]);
+
+const DEFAULT_RIG_CONSTRAINTS = Object.freeze({
+  minDistance: 0.35,
+  maxDistance: 10,
+  minPolarAngle: 0.08,
+  maxPolarAngle: Math.PI - 0.08,
+  firstPersonHeadOffset: 0.05,
+  headLookMaxYaw: Math.PI / 3,
+  headLookMaxPitch: Math.PI / 5,
+  headLookWeight: 0.65,
+});
 
 function nowMs(timeSource) {
   if (typeof timeSource === "function") {
@@ -85,6 +104,29 @@ function normalizeVec3(vector, fallback = [0, 0, 1]) {
     return [...fallback];
   }
   return [vector[0] / length, vector[1] / length, vector[2] / length];
+}
+
+function distanceVec3(a, b) {
+  return lengthVec3(subVec3(a, b));
+}
+
+function clampVecLength(vector, minLength, maxLength, fallback = [0, 0, 1]) {
+  const length = lengthVec3(vector);
+  if (length <= EPSILON) {
+    return scaleVec3(normalizeVec3(fallback, [0, 0, 1]), minLength);
+  }
+  return scaleVec3(vector, clamp(length, minLength, maxLength) / length);
+}
+
+function wrapAngle(value) {
+  let angle = finiteNumber(value, 0);
+  while (angle > Math.PI) {
+    angle -= Math.PI * 2;
+  }
+  while (angle < -Math.PI) {
+    angle += Math.PI * 2;
+  }
+  return angle;
 }
 
 function cloneViewport(viewport = DEFAULT_VIEWPORT) {
@@ -155,6 +197,75 @@ function normalizeTransform(transform = {}) {
     position,
     target,
     up,
+  };
+}
+
+function normalizeCameraViewMode(value) {
+  const mode = String(value ?? "").trim();
+  return cameraViewModes.includes(mode) ? mode : "spectator";
+}
+
+function normalizeRigConstraints(constraints = {}) {
+  const minDistance = Math.max(
+    EPSILON,
+    finiteNumber(constraints.minDistance, DEFAULT_RIG_CONSTRAINTS.minDistance)
+  );
+  const maxDistance = Math.max(
+    minDistance + EPSILON,
+    finiteNumber(constraints.maxDistance, DEFAULT_RIG_CONSTRAINTS.maxDistance)
+  );
+  const minPolarAngle = clamp(
+    finiteNumber(constraints.minPolarAngle, DEFAULT_RIG_CONSTRAINTS.minPolarAngle),
+    EPSILON,
+    Math.PI - EPSILON
+  );
+  const maxPolarAngle = clamp(
+    finiteNumber(constraints.maxPolarAngle, DEFAULT_RIG_CONSTRAINTS.maxPolarAngle),
+    minPolarAngle,
+    Math.PI - EPSILON
+  );
+
+  return {
+    minDistance,
+    maxDistance,
+    minPolarAngle,
+    maxPolarAngle,
+    firstPersonHeadOffset: Math.max(
+      0,
+      finiteNumber(
+        constraints.firstPersonHeadOffset,
+        DEFAULT_RIG_CONSTRAINTS.firstPersonHeadOffset
+      )
+    ),
+    headLookMaxYaw: Math.max(
+      0,
+      finiteNumber(constraints.headLookMaxYaw, DEFAULT_RIG_CONSTRAINTS.headLookMaxYaw)
+    ),
+    headLookMaxPitch: Math.max(
+      0,
+      finiteNumber(constraints.headLookMaxPitch, DEFAULT_RIG_CONSTRAINTS.headLookMaxPitch)
+    ),
+    headLookWeight: clamp(
+      finiteNumber(constraints.headLookWeight, DEFAULT_RIG_CONSTRAINTS.headLookWeight),
+      0,
+      1
+    ),
+  };
+}
+
+function normalizeRigAnchors(anchors = {}) {
+  const target = cloneVec3(anchors.target ?? anchors.targetAnchor ?? anchors.character, [0, 0, 0]);
+  const forward = normalizeVec3(cloneVec3(anchors.forward, [0, 0, -1]), [0, 0, -1]);
+  const headFallback = addVec3(target, [0, 1.65, 0]);
+  const hasHeadAnchor = Array.isArray(anchors.head ?? anchors.headAnchor);
+  const head = cloneVec3(anchors.head ?? anchors.headAnchor, headFallback);
+
+  return {
+    target,
+    head,
+    forward,
+    up: normalizeVec3(cloneVec3(anchors.up, DEFAULT_UP), DEFAULT_UP),
+    hasHeadAnchor,
   };
 }
 
@@ -509,6 +620,176 @@ function normalizeCameraDefinition(definition, generatedId) {
   };
 }
 
+function applyRigControl(camera, control, constraints, touchedAt) {
+  if (!control) {
+    return normalizeCameraDefinition(camera, camera?.id ?? "camera");
+  }
+  return applyCameraControl(camera, control, {
+    minDistance: constraints.minDistance,
+    maxDistance: constraints.maxDistance,
+    minPolarAngle: constraints.minPolarAngle,
+    maxPolarAngle: constraints.maxPolarAngle,
+    touchedAt,
+  });
+}
+
+function resolveLookIntent(viewMode, transform, anchors, constraints, active) {
+  if (!active || (viewMode !== "third-person" && viewMode !== "first-person")) {
+    return {
+      status: "inactive",
+      source: viewMode,
+      target: [...transform.target],
+      yaw: 0,
+      pitch: 0,
+      weight: 0,
+    };
+  }
+
+  const desired = normalizeVec3(subVec3(transform.target, anchors.head), anchors.forward);
+  const actorYaw = Math.atan2(anchors.forward[0], anchors.forward[2]);
+  const desiredYaw = Math.atan2(desired[0], desired[2]);
+  const yaw = clamp(
+    wrapAngle(desiredYaw - actorYaw),
+    -constraints.headLookMaxYaw,
+    constraints.headLookMaxYaw
+  );
+  const pitch = clamp(
+    Math.asin(clamp(desired[1], -1, 1)),
+    -constraints.headLookMaxPitch,
+    constraints.headLookMaxPitch
+  );
+
+  return {
+    status: "active",
+    source: viewMode,
+    target: [...transform.target],
+    yaw,
+    pitch,
+    weight: constraints.headLookWeight,
+  };
+}
+
+export function resolveCameraRigFrame(options = {}) {
+  const viewMode = normalizeCameraViewMode(options.viewMode ?? options.mode);
+  const constraints = normalizeRigConstraints(options.constraints);
+  const anchors = normalizeRigAnchors(options.anchors);
+  const cameraId = String(options.id ?? options.camera?.id ?? `${viewMode}-camera`);
+  const touchedAt = finiteNumber(options.touchedAt, 0);
+  const offset = cloneVec3(options.offset, [0, 2.4, 5.5]);
+  const suppliedTransform = options.camera?.transform ?? options.transform;
+  const baseTransform =
+    suppliedTransform
+      ? normalizeTransform(suppliedTransform)
+      : {
+          position: addVec3(anchors.target, offset),
+          target: [...anchors.target],
+          up: [...anchors.up],
+        };
+  let camera = normalizeCameraDefinition(
+    {
+      ...(options.camera ?? {}),
+      id: cameraId,
+      transform: baseTransform,
+      projection: options.camera?.projection ?? options.projection,
+      viewport: options.camera?.viewport ?? options.viewport,
+      metadata: {
+        ...(options.camera?.metadata ?? {}),
+        viewMode,
+      },
+    },
+    cameraId
+  );
+
+  if (viewMode === "editor") {
+    camera = applyRigControl(camera, options.control, constraints, touchedAt);
+  }
+
+  if (viewMode === "spectator") {
+    const spectator = {
+      ...camera,
+      transform: {
+        position: addVec3(anchors.target, offset),
+        target: [...anchors.target],
+        up: [...anchors.up],
+      },
+    };
+    camera = applyRigControl(spectator, options.control, constraints, touchedAt);
+  }
+
+  if (viewMode === "third-person") {
+    const controlled = applyRigControl(camera, options.control, constraints, touchedAt);
+    const target = [...anchors.target];
+    const offsetFromTarget = subVec3(controlled.transform.position, target);
+    const fallback = subVec3(baseTransform.position, target);
+    const clampedOffset = clampVecLength(
+      offsetFromTarget,
+      constraints.minDistance,
+      constraints.maxDistance,
+      fallback
+    );
+    camera = {
+      ...controlled,
+      transform: {
+        position: addVec3(target, clampedOffset),
+        target,
+        up: [...anchors.up],
+      },
+    };
+  }
+
+  if (viewMode === "first-person") {
+    const controlled = applyRigControl(camera, options.control, constraints, touchedAt);
+    const basis = resolveCameraBasis(controlled.transform);
+    const eye = addVec3(
+      anchors.head,
+      scaleVec3(anchors.forward, constraints.firstPersonHeadOffset)
+    );
+    camera = {
+      ...controlled,
+      transform: {
+        position: eye,
+        target: addVec3(eye, basis.forward),
+        up: [...anchors.up],
+      },
+      projection: normalizeProjection({
+        ...controlled.projection,
+        near: Math.min(controlled.projection.near, 0.02),
+      }),
+    };
+  }
+
+  const targetDistance = distanceVec3(camera.transform.position, anchors.target);
+  const headLook = anchors.hasHeadAnchor
+    ? resolveLookIntent(
+        viewMode,
+        camera.transform,
+        anchors,
+        constraints,
+        options.activeControl === true
+      )
+    : {
+        status: "unavailable",
+        source: viewMode,
+        target: [...camera.transform.target],
+        yaw: 0,
+        pitch: 0,
+        weight: 0,
+      };
+
+  return {
+    viewMode,
+    camera,
+    transform: {
+      position: [...camera.transform.position],
+      target: [...camera.transform.target],
+      up: [...camera.transform.up],
+    },
+    targetDistance,
+    headLook,
+    constraints,
+  };
+}
+
 export function applyCameraControl(camera, control, options = {}) {
   const base = normalizeCameraDefinition(camera, camera?.id ?? "camera");
   if (!control || typeof control !== "object") {
@@ -558,6 +839,30 @@ export function applyCameraControl(camera, control, options = {}) {
     const nextRadius = clamp(currentRadius - distance, minDistance, maxDistance);
     const moved = subVec3(target, scaleVec3(direction, nextRadius));
     next.transform.position = moved;
+  }
+
+  if (kind === "look") {
+    const deltaYaw = finiteNumber(control.deltaYaw ?? control.deltaAzimuth, 0);
+    const deltaPitch = finiteNumber(control.deltaPitch ?? control.deltaPolar, 0);
+    const eye = next.transform.position;
+    const target = next.transform.target;
+    const offset = subVec3(target, eye);
+    const distance = clamp(lengthVec3(offset), minDistance, maxDistance);
+    const forward = normalizeVec3(offset, [0, 0, -1]);
+    const yaw = Math.atan2(forward[0], forward[2]) + deltaYaw;
+    const pitch = clamp(
+      Math.asin(clamp(forward[1], -1, 1)) + deltaPitch,
+      -Math.PI / 2 + EPSILON,
+      Math.PI / 2 - EPSILON
+    );
+    const cosPitch = Math.cos(pitch);
+    const direction = normalizeVec3([
+      cosPitch * Math.sin(yaw),
+      Math.sin(pitch),
+      cosPitch * Math.cos(yaw),
+    ], [0, 0, -1]);
+
+    next.transform.target = addVec3(eye, scaleVec3(direction, distance));
   }
 
   if (kind === "orbit") {

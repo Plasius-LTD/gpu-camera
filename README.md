@@ -19,6 +19,8 @@ provides deterministic camera orchestration with:
 - low-latency active camera switching,
 - parallel multiview render planning,
 - control primitives (orbit/pan/dolly) that do not depend on Three.js,
+- animated character rig modes for editor, spectator, third-person, and
+  first-person views,
 - ray-ready camera uniforms that map screen pixels or texels to primary rays.
 
 Apache-2.0. ESM + CJS builds.
@@ -92,10 +94,39 @@ const rayCamera = toRayCameraUniform(cameras.getCamera("main"), {
 const centerRay = buildPrimaryRay(rayCamera, { pixelX: 959, pixelY: 539 });
 ```
 
+### Animated Character Rigs
+
+`resolveCameraRigFrame(...)` resolves camera-controls-style input for animated
+character scenes without requiring Three.js:
+
+```js
+import { resolveCameraRigFrame } from "@plasius/gpu-camera";
+
+const frame = resolveCameraRigFrame({
+  viewMode: "third-person",
+  anchors: {
+    target: [0, 0, 0],
+    head: [0, 1.65, 0],
+    forward: [0, 0, -1],
+  },
+  control: { type: "orbit", deltaAzimuth: 0.1 },
+  activeControl: true,
+});
+
+console.log(frame.targetDistance); // <= 10
+console.log(frame.headLook.status); // "active"
+```
+
+Third-person rigs clamp to a 10m target distance by default. First-person rigs
+resolve from the head anchor plus a 5cm forward offset. Head-look intent is
+returned as data so renderers can blend it after their animation system has
+evaluated source clips.
+
 ## API
 
 - `createCameraManager(options)`
 - `applyCameraControl(camera, control)`
+- `resolveCameraRigFrame(options)`
 - `createRenderPlan(snapshot, options)`
 - `buildViewMatrix(camera)`
 - `buildProjectionMatrix(camera, overrideAspect)`

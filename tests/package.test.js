@@ -8,8 +8,10 @@ import {
   buildViewMatrix,
   cameraControlKinds,
   cameraProjectionKinds,
+  cameraViewModes,
   createCameraManager,
   createRenderPlan,
+  resolveCameraRigFrame,
   toCameraUniform,
   toRayCameraUniform,
 } from "../src/index.js";
@@ -33,6 +35,13 @@ test("exports projection and control kinds", () => {
     "pan",
     "truck",
     "dolly",
+    "look",
+  ]);
+  assert.deepEqual(cameraViewModes, [
+    "editor",
+    "spectator",
+    "third-person",
+    "first-person",
   ]);
 });
 
@@ -119,6 +128,96 @@ test("applyCameraControl supports orbit, dolly, and pan", () => {
 
   approxEqual(panned.transform.position[1], 1);
   approxEqual(panned.transform.target[1], 1);
+});
+
+test("applyCameraControl supports camera-controls style look deltas", () => {
+  const looked = applyCameraControl(
+    {
+      id: "look",
+      transform: {
+        position: [0, 1.6, 0],
+        target: [0, 1.6, -1],
+        up: [0, 1, 0],
+      },
+    },
+    {
+      type: "look",
+      deltaYaw: Math.PI / 2,
+      deltaPitch: 0.2,
+    }
+  );
+
+  assert.equal(looked.transform.target[0] < 0, true);
+  assert.equal(looked.transform.target[1] > looked.transform.position[1], true);
+});
+
+test("resolveCameraRigFrame clamps third-person distance and emits active head look", () => {
+  const frame = resolveCameraRigFrame({
+    viewMode: "third-person",
+    anchors: {
+      target: [0, 0, 0],
+      head: [0, 1.65, 0],
+      forward: [0, 0, -1],
+    },
+    camera: {
+      id: "third",
+      transform: {
+        position: [0, 3, 25],
+        target: [0, 1.4, 0],
+      },
+    },
+    activeControl: true,
+  });
+
+  approxEqual(frame.targetDistance, 10);
+  assert.equal(frame.viewMode, "third-person");
+  assert.equal(frame.headLook.status, "active");
+  assert.equal(frame.headLook.weight > 0, true);
+  assert.equal(Math.abs(frame.headLook.yaw) <= Math.PI / 3, true);
+});
+
+test("resolveCameraRigFrame resolves first-person from the head anchor plus 5cm", () => {
+  const frame = resolveCameraRigFrame({
+    viewMode: "first-person",
+    anchors: {
+      target: [0, 0, 0],
+      head: [1, 1.7, 2],
+      forward: [0, 0, -1],
+    },
+    camera: {
+      id: "first",
+      transform: {
+        position: [0, 1.7, 0],
+        target: [0, 1.7, -1],
+      },
+      projection: {
+        kind: "perspective",
+        fovY: 70,
+        near: 0.1,
+        far: 100,
+      },
+    },
+    activeControl: true,
+  });
+
+  approxVec(frame.transform.position, [1, 1.7, 1.95]);
+  approxEqual(frame.camera.projection.near, 0.02);
+  assert.equal(frame.headLook.status, "active");
+});
+
+test("resolveCameraRigFrame keeps head look inactive unless controls are active", () => {
+  const frame = resolveCameraRigFrame({
+    viewMode: "third-person",
+    anchors: {
+      target: [0, 0, 0],
+      head: [0, 1.65, 0],
+      forward: [0, 0, -1],
+    },
+    activeControl: false,
+  });
+
+  assert.equal(frame.headLook.status, "inactive");
+  assert.equal(frame.headLook.weight, 0);
 });
 
 test("matrix helpers and uniform generation produce expected outputs", () => {
