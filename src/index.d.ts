@@ -75,6 +75,14 @@ export interface DollyControl {
   distance?: number;
 }
 
+export interface LookControl {
+  type: "look";
+  deltaYaw?: number;
+  deltaPitch?: number;
+  deltaAzimuth?: number;
+  deltaPolar?: number;
+}
+
 export interface SetLookAtControl {
   type: "set-look-at";
   position?: Vec3;
@@ -82,7 +90,9 @@ export interface SetLookAtControl {
   up?: Vec3;
 }
 
-export type CameraControl = OrbitControl | PanControl | DollyControl | SetLookAtControl;
+export type CameraControl = OrbitControl | PanControl | DollyControl | LookControl | SetLookAtControl;
+
+export type CameraViewMode = "editor" | "spectator" | "third-person" | "first-person";
 
 export interface CameraUniform {
   id: string;
@@ -171,6 +181,61 @@ export interface CameraManagerSnapshot {
   maxHotCameras: number;
   hotCameraIds: string[];
   cameras: CameraState[];
+}
+
+export interface CameraRigConstraints {
+  minDistance?: number;
+  maxDistance?: number;
+  minPolarAngle?: number;
+  maxPolarAngle?: number;
+  firstPersonHeadOffset?: number;
+  headLookMaxYaw?: number;
+  headLookMaxPitch?: number;
+  headLookWeight?: number;
+}
+
+export interface CameraRigAnchors {
+  target?: Vec3;
+  targetAnchor?: Vec3;
+  character?: Vec3;
+  head?: Vec3;
+  headAnchor?: Vec3;
+  forward?: Vec3;
+  up?: Vec3;
+}
+
+export interface HeadLookIntent {
+  status: "active" | "inactive" | "unavailable";
+  source: CameraViewMode;
+  target: Vec3;
+  yaw: number;
+  pitch: number;
+  weight: number;
+}
+
+export interface CameraRigFrame {
+  viewMode: CameraViewMode;
+  camera: CameraState;
+  transform: CameraTransform;
+  targetDistance: number;
+  headLook: HeadLookIntent;
+  constraints: Required<CameraRigConstraints>;
+}
+
+export interface ResolveCameraRigFrameOptions {
+  id?: string;
+  mode?: CameraViewMode | string;
+  viewMode?: CameraViewMode | string;
+  anchors?: CameraRigAnchors;
+  camera?: CameraDefinition;
+  transform?: Partial<CameraTransform>;
+  projection?: Partial<CameraProjection> & { kind?: CameraProjection["kind"] };
+  viewport?: Partial<CameraViewport>;
+  constraints?: CameraRigConstraints;
+  control?: CameraControl;
+  activeControl?: boolean;
+  offset?: Vec3;
+  touchedAt?: number;
 }
 
 export interface CreateRenderPlanOptions {
@@ -266,6 +331,10 @@ export function createRenderPlan(
   options?: CreateRenderPlanOptions
 ): RenderPlan;
 
+export function resolveCameraRigFrame(
+  options?: ResolveCameraRigFrameOptions
+): CameraRigFrame;
+
 export function createCameraManager(options?: CameraManagerOptions): CameraManager;
 
 export const cameraProjectionKinds: readonly ["perspective", "orthographic"];
@@ -274,5 +343,13 @@ export const cameraControlKinds: readonly [
   "orbit",
   "pan",
   "truck",
-  "dolly"
+  "dolly",
+  "look"
+];
+
+export const cameraViewModes: readonly [
+  "editor",
+  "spectator",
+  "third-person",
+  "first-person"
 ];
