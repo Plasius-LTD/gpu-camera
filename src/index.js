@@ -20,6 +20,7 @@ export const cameraControlKinds = Object.freeze([
   "truck",
   "dolly",
   "look",
+  "roll",
 ]);
 
 export const cameraViewModes = Object.freeze([
@@ -27,7 +28,14 @@ export const cameraViewModes = Object.freeze([
   "spectator",
   "third-person",
   "first-person",
+  "top-down",
+  "isometric",
+  "inspect",
+  "xr-vr",
+  "xr-ar",
 ]);
+
+export const cameraRigModes = cameraViewModes;
 
 const DEFAULT_RIG_CONSTRAINTS = Object.freeze({
   minDistance: 0.35,
@@ -38,6 +46,27 @@ const DEFAULT_RIG_CONSTRAINTS = Object.freeze({
   headLookMaxYaw: Math.PI / 3,
   headLookMaxPitch: Math.PI / 5,
   headLookWeight: 0.65,
+});
+
+const DEFAULT_COMFORT_PROFILE = Object.freeze({
+  movementSpeed: 1,
+  rotationSpeed: 1,
+  snapTurnDegrees: 30,
+  smoothTurnSpeed: Math.PI,
+  teleportDistance: 6,
+  vignetteStrength: 0,
+  seated: false,
+  grounded: true,
+});
+
+const DEFAULT_LOCOMOTION_STATE = Object.freeze({
+  origin: [0, 0, 0],
+  anchor: null,
+  yaw: 0,
+  pitch: 0,
+  roll: 0,
+  velocity: [0, 0, 0],
+  grounded: true,
 });
 
 function nowMs(timeSource) {
@@ -94,6 +123,10 @@ function crossVec3(a, b) {
   ];
 }
 
+function clampUnit(value) {
+  return clamp(value, -1, 1);
+}
+
 function lengthVec3(vector) {
   return Math.hypot(vector[0], vector[1], vector[2]);
 }
@@ -127,6 +160,83 @@ function wrapAngle(value) {
     angle += Math.PI * 2;
   }
   return angle;
+}
+
+function cloneQuaternion(value, fallback = [0, 0, 0, 1]) {
+  if (!Array.isArray(value) || value.length < 4) {
+    return [...fallback];
+  }
+  return [
+    finiteNumber(value[0], fallback[0]),
+    finiteNumber(value[1], fallback[1]),
+    finiteNumber(value[2], fallback[2]),
+    finiteNumber(value[3], fallback[3]),
+  ];
+}
+
+function normalizeQuaternion(value, fallback = [0, 0, 0, 1]) {
+  const quaternion = cloneQuaternion(value, fallback);
+  const length = Math.hypot(
+    quaternion[0],
+    quaternion[1],
+    quaternion[2],
+    quaternion[3]
+  );
+  if (length <= EPSILON) {
+    return [...fallback];
+  }
+  return quaternion.map((component) => component / length);
+}
+
+function multiplyQuaternion(left, right) {
+  return [
+    left[3] * right[0] + left[0] * right[3] + left[1] * right[2] - left[2] * right[1],
+    left[3] * right[1] - left[0] * right[2] + left[1] * right[3] + left[2] * right[0],
+    left[3] * right[2] + left[0] * right[1] - left[1] * right[0] + left[2] * right[3],
+    left[3] * right[3] - left[0] * right[0] - left[1] * right[1] - left[2] * right[2],
+  ];
+}
+
+function quaternionFromAxisAngle(axis, angle) {
+  const normalizedAxis = normalizeVec3(axis, [0, 1, 0]);
+  const half = angle / 2;
+  const sin = Math.sin(half);
+  return normalizeQuaternion([
+    normalizedAxis[0] * sin,
+    normalizedAxis[1] * sin,
+    normalizedAxis[2] * sin,
+    Math.cos(half),
+  ]);
+}
+
+function rotateVecByQuaternion(vector, quaternion) {
+  const normalizedQuaternion = normalizeQuaternion(quaternion);
+  const inverse = [
+    -normalizedQuaternion[0],
+    -normalizedQuaternion[1],
+    -normalizedQuaternion[2],
+    normalizedQuaternion[3],
+  ];
+  const promoted = [vector[0], vector[1], vector[2], 0];
+  const rotated = multiplyQuaternion(
+    multiplyQuaternion(normalizedQuaternion, promoted),
+    inverse
+  );
+  return [rotated[0], rotated[1], rotated[2]];
+}
+
+function rotateVecAroundAxis(vector, axis, angle) {
+  const normalizedAxis = normalizeVec3(axis, [0, 1, 0]);
+  const cosAngle = Math.cos(angle);
+  const sinAngle = Math.sin(angle);
+  const projection = dotVec3(vector, normalizedAxis);
+  const parallel = scaleVec3(normalizedAxis, projection);
+  const perpendicular = subVec3(vector, parallel);
+  const cross = crossVec3(normalizedAxis, perpendicular);
+  return addVec3(
+    addVec3(parallel, scaleVec3(perpendicular, cosAngle)),
+    scaleVec3(cross, sinAngle)
+  );
 }
 
 function cloneViewport(viewport = DEFAULT_VIEWPORT) {
@@ -205,6 +315,109 @@ function normalizeCameraViewMode(value) {
   return cameraViewModes.includes(mode) ? mode : "spectator";
 }
 
+function normalizeComfortProfile(profile = {}) {
+  return {
+    movementSpeed: Math.max(
+      0.01,
+      finiteNumber(profile.movementSpeed, DEFAULT_COMFORT_PROFILE.movementSpeed)
+    ),
+    rotationSpeed: Math.max(
+      0.01,
+      finiteNumber(profile.rotationSpeed, DEFAULT_COMFORT_PROFILE.rotationSpeed)
+    ),
+    snapTurnDegrees: clamp(
+      finiteNumber(profile.snapTurnDegrees, DEFAULT_COMFORT_PROFILE.snapTurnDegrees),
+      0,
+      180
+    ),
+    smoothTurnSpeed: Math.max(
+      0,
+      finiteNumber(profile.smoothTurnSpeed, DEFAULT_COMFORT_PROFILE.smoothTurnSpeed)
+    ),
+    teleportDistance: Math.max(
+      0,
+      finiteNumber(profile.teleportDistance, DEFAULT_COMFORT_PROFILE.teleportDistance)
+    ),
+    vignetteStrength: clamp(
+      finiteNumber(profile.vignetteStrength, DEFAULT_COMFORT_PROFILE.vignetteStrength),
+      0,
+      1
+    ),
+    seated: profile.seated === true,
+    grounded:
+      profile.grounded === false ? false : DEFAULT_COMFORT_PROFILE.grounded,
+  };
+}
+
+function normalizeLocomotionState(locomotion = {}) {
+  return {
+    origin: cloneVec3(locomotion.origin, DEFAULT_LOCOMOTION_STATE.origin),
+    anchor: Array.isArray(locomotion.anchor)
+      ? cloneVec3(locomotion.anchor, [0, 0, 0])
+      : null,
+    yaw: wrapAngle(finiteNumber(locomotion.yaw, DEFAULT_LOCOMOTION_STATE.yaw)),
+    pitch: clamp(
+      finiteNumber(locomotion.pitch, DEFAULT_LOCOMOTION_STATE.pitch),
+      -Math.PI / 2 + EPSILON,
+      Math.PI / 2 - EPSILON
+    ),
+    roll: wrapAngle(finiteNumber(locomotion.roll, DEFAULT_LOCOMOTION_STATE.roll)),
+    velocity: cloneVec3(locomotion.velocity, DEFAULT_LOCOMOTION_STATE.velocity),
+    grounded:
+      locomotion.grounded === false ? false : DEFAULT_LOCOMOTION_STATE.grounded,
+  };
+}
+
+function normalizeCameraPose(pose = {}, fallbackTransform = null) {
+  const fallbackBasis = fallbackTransform
+    ? resolveCameraBasis(fallbackTransform)
+    : {
+        forward: [0, 0, -1],
+        up: [0, 1, 0],
+        right: [1, 0, 0],
+      };
+  const orientation = normalizeQuaternion(pose.orientation, [0, 0, 0, 1]);
+  const forward = normalizeVec3(
+    Array.isArray(pose.forward)
+      ? cloneVec3(pose.forward, fallbackBasis.forward)
+      : rotateVecByQuaternion([0, 0, -1], orientation),
+    fallbackBasis.forward
+  );
+  const up = normalizeVec3(
+    Array.isArray(pose.up)
+      ? cloneVec3(pose.up, fallbackBasis.up)
+      : rotateVecByQuaternion([0, 1, 0], orientation),
+    fallbackBasis.up
+  );
+  const right = normalizeVec3(crossVec3(forward, up), fallbackBasis.right);
+
+  return {
+    position: cloneVec3(
+      pose.position,
+      fallbackTransform?.position ?? [0, 0, 0]
+    ),
+    orientation,
+    forward,
+    up,
+    right,
+    referenceSpaceType: String(pose.referenceSpaceType ?? "local-floor"),
+    emulatedPosition: pose.emulatedPosition === true,
+    views: Array.isArray(pose.views) ? [...pose.views] : [],
+  };
+}
+
+export function resolveCameraComfortProfile(profile = {}) {
+  return normalizeComfortProfile(profile);
+}
+
+export function resolveCameraLocomotionState(locomotion = {}) {
+  return normalizeLocomotionState(locomotion);
+}
+
+export function resolveCameraPose(pose = {}, fallbackTransform = null) {
+  return normalizeCameraPose(pose, fallbackTransform);
+}
+
 function normalizeRigConstraints(constraints = {}) {
   const minDistance = Math.max(
     EPSILON,
@@ -266,6 +479,71 @@ function normalizeRigAnchors(anchors = {}) {
     forward,
     up: normalizeVec3(cloneVec3(anchors.up, DEFAULT_UP), DEFAULT_UP),
     hasHeadAnchor,
+  };
+}
+
+function applyCollisionProvider(camera, collisionProvider, context) {
+  if (typeof collisionProvider !== "function") {
+    return {
+      camera,
+      collision: {
+        blocked: false,
+        metadata: null,
+      },
+    };
+  }
+
+  const resolution = collisionProvider(
+    [...camera.transform.position],
+    [...camera.transform.target],
+    {
+      camera: cloneCamera(camera),
+      viewMode: context.viewMode,
+      rigMode: context.rigMode,
+      pose: context.pose,
+      locomotion: context.locomotion,
+    }
+  );
+
+  if (!resolution || typeof resolution !== "object") {
+    return {
+      camera,
+      collision: {
+        blocked: false,
+        metadata: null,
+      },
+    };
+  }
+
+  const next = cloneCamera(camera);
+  if (Array.isArray(resolution.position)) {
+    next.transform.position = cloneVec3(
+      resolution.position,
+      next.transform.position
+    );
+  }
+  if (Array.isArray(resolution.target)) {
+    next.transform.target = cloneVec3(
+      resolution.target,
+      next.transform.target
+    );
+  }
+  if (Array.isArray(resolution.up)) {
+    next.transform.up = normalizeVec3(
+      cloneVec3(resolution.up, next.transform.up),
+      DEFAULT_UP
+    );
+  }
+
+  return {
+    camera: next,
+    collision: {
+      blocked: resolution.blocked === true,
+      metadata:
+        resolution.metadata && typeof resolution.metadata === "object"
+          ? { ...resolution.metadata }
+          : null,
+    },
   };
 }
 
@@ -654,7 +932,7 @@ function resolveLookIntent(viewMode, transform, anchors, constraints, active) {
     constraints.headLookMaxYaw
   );
   const pitch = clamp(
-    Math.asin(clamp(desired[1], -1, 1)),
+    Math.asin(clampUnit(desired[1])),
     -constraints.headLookMaxPitch,
     constraints.headLookMaxPitch
   );
@@ -671,11 +949,13 @@ function resolveLookIntent(viewMode, transform, anchors, constraints, active) {
 
 export function resolveCameraRigFrame(options = {}) {
   const viewMode = normalizeCameraViewMode(options.viewMode ?? options.mode);
+  const rigMode = viewMode;
   const constraints = normalizeRigConstraints(options.constraints);
   const anchors = normalizeRigAnchors(options.anchors);
   const cameraId = String(options.id ?? options.camera?.id ?? `${viewMode}-camera`);
   const touchedAt = finiteNumber(options.touchedAt, 0);
   const offset = cloneVec3(options.offset, [0, 2.4, 5.5]);
+  const comfort = normalizeComfortProfile(options.comfort);
   const suppliedTransform = options.camera?.transform ?? options.transform;
   const baseTransform =
     suppliedTransform
@@ -685,6 +965,8 @@ export function resolveCameraRigFrame(options = {}) {
           target: [...anchors.target],
           up: [...anchors.up],
         };
+  const pose = normalizeCameraPose(options.pose, baseTransform);
+  const locomotion = normalizeLocomotionState(options.locomotion);
   let camera = normalizeCameraDefinition(
     {
       ...(options.camera ?? {}),
@@ -695,6 +977,7 @@ export function resolveCameraRigFrame(options = {}) {
       metadata: {
         ...(options.camera?.metadata ?? {}),
         viewMode,
+        rigMode,
       },
     },
     cameraId
@@ -758,6 +1041,120 @@ export function resolveCameraRigFrame(options = {}) {
     };
   }
 
+  if (viewMode === "top-down") {
+    const controlled = applyRigControl(camera, options.control, constraints, touchedAt);
+    const target = [...anchors.target];
+    const distance = clamp(
+      distanceVec3(controlled.transform.position, target),
+      Math.max(constraints.minDistance, 4),
+      Math.max(constraints.maxDistance, 24)
+    );
+    camera = {
+      ...controlled,
+      transform: {
+        position: [target[0], target[1] + distance, target[2]],
+        target,
+        up: [0, 0, -1],
+      },
+    };
+  }
+
+  if (viewMode === "isometric") {
+    const target = [...anchors.target];
+    const controlled = applyRigControl(camera, options.control, constraints, touchedAt);
+    const distance = clamp(
+      distanceVec3(controlled.transform.position, target),
+      Math.max(constraints.minDistance, 4),
+      Math.max(constraints.maxDistance, 32)
+    );
+    const baseDirection = normalizeVec3([-1, 1, 1], [-1, 1, 1]);
+    const rotatedDirection = rotateVecAroundAxis(
+      baseDirection,
+      DEFAULT_UP,
+      locomotion.yaw
+    );
+    camera = {
+      ...controlled,
+      transform: {
+        position: addVec3(target, scaleVec3(rotatedDirection, distance)),
+        target,
+        up: [...anchors.up],
+      },
+    };
+  }
+
+  if (viewMode === "inspect") {
+    const target = [...anchors.target];
+    const controlled = applyRigControl(camera, options.control, constraints, touchedAt);
+    const offsetFromTarget = subVec3(controlled.transform.position, target);
+    const fallback = subVec3(baseTransform.position, target);
+    camera = {
+      ...controlled,
+      transform: {
+        position: addVec3(
+          target,
+          clampVecLength(
+            offsetFromTarget,
+            Math.max(constraints.minDistance, 0.4),
+            Math.max(constraints.maxDistance, 12),
+            fallback
+          )
+        ),
+        target,
+        up: [...anchors.up],
+      },
+    };
+  }
+
+  if (viewMode === "xr-vr" || viewMode === "xr-ar") {
+    const yawQuaternion = quaternionFromAxisAngle(DEFAULT_UP, locomotion.yaw);
+    const pitchQuaternion = quaternionFromAxisAngle(pose.right, locomotion.pitch);
+    const rollQuaternion = quaternionFromAxisAngle(pose.forward, locomotion.roll);
+    const locomotionOrientation = multiplyQuaternion(
+      rollQuaternion,
+      multiplyQuaternion(pitchQuaternion, yawQuaternion)
+    );
+    const composedForward = normalizeVec3(
+      rotateVecByQuaternion(pose.forward, locomotionOrientation),
+      pose.forward
+    );
+    const composedUp = normalizeVec3(
+      rotateVecByQuaternion(pose.up, locomotionOrientation),
+      pose.up
+    );
+    const composedPosition = addVec3(locomotion.origin, pose.position);
+    const target =
+      viewMode === "xr-ar" && Array.isArray(locomotion.anchor)
+        ? [...locomotion.anchor]
+        : addVec3(composedPosition, composedForward);
+
+    camera = {
+      ...camera,
+      transform: {
+        position: composedPosition,
+        target,
+        up: composedUp,
+      },
+      projection: normalizeProjection({
+        ...camera.projection,
+        near: Math.min(camera.projection.near, 0.02),
+      }),
+      metadata: {
+        ...(camera.metadata ?? {}),
+        referenceSpaceType: pose.referenceSpaceType,
+        emulatedPosition: pose.emulatedPosition,
+      },
+    };
+  }
+
+  const collisionResult = applyCollisionProvider(camera, options.collisionProvider, {
+    viewMode,
+    rigMode,
+    pose,
+    locomotion,
+  });
+  camera = collisionResult.camera;
+
   const targetDistance = distanceVec3(camera.transform.position, anchors.target);
   const headLook = anchors.hasHeadAnchor
     ? resolveLookIntent(
@@ -778,6 +1175,7 @@ export function resolveCameraRigFrame(options = {}) {
 
   return {
     viewMode,
+    rigMode,
     camera,
     transform: {
       position: [...camera.transform.position],
@@ -787,6 +1185,10 @@ export function resolveCameraRigFrame(options = {}) {
     targetDistance,
     headLook,
     constraints,
+    pose,
+    locomotion,
+    comfort,
+    collision: collisionResult.collision,
   };
 }
 
@@ -851,7 +1253,7 @@ export function applyCameraControl(camera, control, options = {}) {
     const forward = normalizeVec3(offset, [0, 0, -1]);
     const yaw = Math.atan2(forward[0], forward[2]) + deltaYaw;
     const pitch = clamp(
-      Math.asin(clamp(forward[1], -1, 1)) + deltaPitch,
+      Math.asin(clampUnit(forward[1])) + deltaPitch,
       -Math.PI / 2 + EPSILON,
       Math.PI / 2 - EPSILON
     );
@@ -863,6 +1265,18 @@ export function applyCameraControl(camera, control, options = {}) {
     ], [0, 0, -1]);
 
     next.transform.target = addVec3(eye, scaleVec3(direction, distance));
+  }
+
+  if (kind === "roll") {
+    const deltaRoll = finiteNumber(control.deltaRoll ?? control.angle, 0);
+    const forward = normalizeVec3(
+      subVec3(next.transform.target, next.transform.position),
+      [0, 0, -1]
+    );
+    next.transform.up = normalizeVec3(
+      rotateVecAroundAxis(next.transform.up, forward, deltaRoll),
+      DEFAULT_UP
+    );
   }
 
   if (kind === "orbit") {
@@ -878,7 +1292,7 @@ export function applyCameraControl(camera, control, options = {}) {
     const nextRadius = clamp(radius + radiusDelta, minDistance, maxDistance);
 
     const azimuth = Math.atan2(offset[0], offset[2]) + deltaAzimuth;
-    const polarCurrent = Math.acos(clamp(offset[1] / radius, -1, 1));
+    const polarCurrent = Math.acos(clampUnit(offset[1] / radius));
     const polar = clamp(
       polarCurrent + deltaPolar,
       minPolarAngle,

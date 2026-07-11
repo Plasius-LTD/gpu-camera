@@ -8,10 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
-  - (placeholder)
+  - Added pose-aware camera contracts for `CameraPose`,
+    `CameraLocomotionState`, `CameraComfortProfile`, and
+    `CameraCollisionProvider`.
+  - Added rig-mode support for `top-down`, `isometric`, `inspect`, `xr-vr`,
+    and `xr-ar`, while preserving the existing editor/spectator/third-person/
+    first-person aliases.
 
 - **Changed**
-  - (placeholder)
+  - Extended `resolveCameraRigFrame(...)` so XR pose composition, locomotion,
+    comfort, and collision resolution now flow through the authoritative camera
+    rig layer.
 
 - **Fixed**
   - (placeholder)

@@ -8,9 +8,13 @@ import {
   buildViewMatrix,
   cameraControlKinds,
   cameraProjectionKinds,
+  cameraRigModes,
   cameraViewModes,
   createCameraManager,
   createRenderPlan,
+  resolveCameraComfortProfile,
+  resolveCameraLocomotionState,
+  resolveCameraPose,
   resolveCameraRigFrame,
   toCameraUniform,
   toRayCameraUniform,
@@ -27,6 +31,24 @@ function approxVec(actual, expected, epsilon = 1e-4) {
   }
 }
 
+function cameraAt(position = [0, 0, 10], target = [0, 0, 0]) {
+  return {
+    id: "test",
+    transform: {
+      position,
+      target,
+      up: [0, 1, 0],
+    },
+    projection: {
+      kind: "perspective",
+      fovY: 60,
+      near: 0.1,
+      far: 100,
+      aspect: 1,
+    },
+  };
+}
+
 test("exports projection and control kinds", () => {
   assert.deepEqual(cameraProjectionKinds, ["perspective", "orthographic"]);
   assert.deepEqual(cameraControlKinds, [
@@ -36,13 +58,20 @@ test("exports projection and control kinds", () => {
     "truck",
     "dolly",
     "look",
+    "roll",
   ]);
   assert.deepEqual(cameraViewModes, [
     "editor",
     "spectator",
     "third-person",
     "first-person",
+    "top-down",
+    "isometric",
+    "inspect",
+    "xr-vr",
+    "xr-ar",
   ]);
+  assert.deepEqual(cameraRigModes, cameraViewModes);
 });
 
 test("camera manager supports multi-camera registration and active switching", () => {
@@ -151,6 +180,18 @@ test("applyCameraControl supports camera-controls style look deltas", () => {
   assert.equal(looked.transform.target[1] > looked.transform.position[1], true);
 });
 
+test("applyCameraControl supports roll", () => {
+  const rolled = applyCameraControl(
+    cameraAt([0, 0, 10], [0, 0, 0]),
+    {
+      type: "roll",
+      deltaRoll: Math.PI / 2,
+    }
+  );
+
+  approxEqual(rolled.transform.up[0], 1, 1e-3);
+});
+
 test("resolveCameraRigFrame clamps third-person distance and emits active head look", () => {
   const frame = resolveCameraRigFrame({
     viewMode: "third-person",
@@ -218,6 +259,66 @@ test("resolveCameraRigFrame keeps head look inactive unless controls are active"
 
   assert.equal(frame.headLook.status, "inactive");
   assert.equal(frame.headLook.weight, 0);
+});
+
+test("resolveCameraRigFrame supports top-down and xr-vr pose composition", () => {
+  const topDown = resolveCameraRigFrame({
+    viewMode: "top-down",
+    anchors: {
+      target: [4, 0, -2],
+      forward: [0, 0, -1],
+    },
+    camera: {
+      id: "map",
+      transform: {
+        position: [4, 12, -2],
+        target: [4, 0, -2],
+      },
+    },
+  });
+  approxVec(topDown.transform.position, [4, 12, -2]);
+  approxVec(topDown.transform.up, [0, 0, -1]);
+
+  const xr = resolveCameraRigFrame({
+    viewMode: "xr-vr",
+    pose: {
+      position: [0.25, 1.6, 0.5],
+      orientation: [0, 0, 0, 1],
+      forward: [0, 0, -1],
+      up: [0, 1, 0],
+      referenceSpaceType: "local-floor",
+    },
+    locomotion: {
+      origin: [2, 0, 3],
+      yaw: Math.PI / 2,
+    },
+  });
+  approxVec(xr.transform.position, [2.25, 1.6, 3.5]);
+  assert.equal(xr.pose.referenceSpaceType, "local-floor");
+  assert.equal(xr.comfort.seated, false);
+});
+
+test("pose, locomotion, and comfort helpers normalize additive contracts", () => {
+  const pose = resolveCameraPose({
+    position: [1, 2, 3],
+    orientation: [0, 0, 0, 1],
+  });
+  approxVec(pose.position, [1, 2, 3]);
+  approxVec(pose.forward, [0, 0, -1]);
+
+  const locomotion = resolveCameraLocomotionState({
+    origin: [3, 4, 5],
+    yaw: Math.PI,
+  });
+  approxVec(locomotion.origin, [3, 4, 5]);
+  approxEqual(locomotion.yaw, Math.PI);
+
+  const comfort = resolveCameraComfortProfile({
+    snapTurnDegrees: 45,
+    seated: true,
+  });
+  assert.equal(comfort.snapTurnDegrees, 45);
+  assert.equal(comfort.seated, true);
 });
 
 test("matrix helpers and uniform generation produce expected outputs", () => {

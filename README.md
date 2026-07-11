@@ -19,8 +19,8 @@ provides deterministic camera orchestration with:
 - low-latency active camera switching,
 - parallel multiview render planning,
 - control primitives (orbit/pan/dolly) that do not depend on Three.js,
-- animated character rig modes for editor, spectator, third-person, and
-  first-person views,
+- pose-aware rig modes for editor, spectator, third-person, first-person,
+  top-down, isometric, inspect, XR VR, and XR AR views,
 - ray-ready camera uniforms that map screen pixels or texels to primary rays.
 
 Apache-2.0. ESM + CJS builds.
@@ -94,7 +94,7 @@ const rayCamera = toRayCameraUniform(cameras.getCamera("main"), {
 const centerRay = buildPrimaryRay(rayCamera, { pixelX: 959, pixelY: 539 });
 ```
 
-### Animated Character Rigs
+### Pose-Aware Rigs
 
 `resolveCameraRigFrame(...)` resolves camera-controls-style input for animated
 character scenes without requiring Three.js:
@@ -122,11 +122,42 @@ resolve from the head anchor plus a 5cm forward offset. Head-look intent is
 returned as data so renderers can blend it after their animation system has
 evaluated source clips.
 
+XR and free-locomotion consumers can also provide explicit pose, locomotion,
+comfort, and collision inputs so the camera math layer remains authoritative for
+browser, XR, and tool-driven modes:
+
+```js
+import { resolveCameraRigFrame } from "@plasius/gpu-camera";
+
+const frame = resolveCameraRigFrame({
+  viewMode: "xr-vr",
+  pose: {
+    position: [0.25, 1.65, 0.5],
+    orientation: [0, 0, 0, 1],
+    forward: [0, 0, -1],
+    up: [0, 1, 0],
+    referenceSpaceType: "local-floor",
+  },
+  locomotion: {
+    move: [0, 0, -1],
+    altitude: 0,
+    sprint: false,
+  },
+  comfort: {
+    snapTurnDegrees: 30,
+    grounded: true,
+  },
+});
+```
+
 ## API
 
 - `createCameraManager(options)`
 - `applyCameraControl(camera, control)`
 - `resolveCameraRigFrame(options)`
+- `resolveCameraPose(pose)`
+- `resolveCameraLocomotionState(locomotion)`
+- `resolveCameraComfortProfile(profile)`
 - `createRenderPlan(snapshot, options)`
 - `buildViewMatrix(camera)`
 - `buildProjectionMatrix(camera, overrideAspect)`
