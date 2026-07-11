@@ -1,4 +1,5 @@
 export type Vec3 = [number, number, number];
+export type Quaternion = [number, number, number, number];
 
 export interface CameraViewport {
   x: number;
@@ -83,6 +84,12 @@ export interface LookControl {
   deltaPolar?: number;
 }
 
+export interface RollControl {
+  type: "roll";
+  deltaRoll?: number;
+  angle?: number;
+}
+
 export interface SetLookAtControl {
   type: "set-look-at";
   position?: Vec3;
@@ -90,9 +97,118 @@ export interface SetLookAtControl {
   up?: Vec3;
 }
 
-export type CameraControl = OrbitControl | PanControl | DollyControl | LookControl | SetLookAtControl;
+export type CameraControl =
+  | OrbitControl
+  | PanControl
+  | DollyControl
+  | LookControl
+  | RollControl
+  | SetLookAtControl;
 
-export type CameraViewMode = "editor" | "spectator" | "third-person" | "first-person";
+export type CameraViewMode =
+  | "editor"
+  | "spectator"
+  | "third-person"
+  | "first-person"
+  | "top-down"
+  | "isometric"
+  | "inspect"
+  | "xr-vr"
+  | "xr-ar";
+
+export type CameraRigMode = CameraViewMode;
+
+export interface CameraPoseView {
+  eye?: "left" | "right" | "none" | string;
+  position?: Vec3;
+  orientation?: Quaternion;
+  projectionMatrix?: readonly number[] | Float32Array;
+  transformMatrix?: readonly number[] | Float32Array;
+}
+
+export interface CameraPose {
+  position?: Vec3;
+  orientation?: Quaternion;
+  forward?: Vec3;
+  up?: Vec3;
+  right?: Vec3;
+  referenceSpaceType?: string;
+  emulatedPosition?: boolean;
+  views?: readonly CameraPoseView[];
+}
+
+export interface CameraLocomotionState {
+  origin?: Vec3;
+  anchor?: Vec3 | null;
+  yaw?: number;
+  pitch?: number;
+  roll?: number;
+  velocity?: Vec3;
+  grounded?: boolean;
+}
+
+export interface CameraComfortProfile {
+  movementSpeed?: number;
+  rotationSpeed?: number;
+  snapTurnDegrees?: number;
+  smoothTurnSpeed?: number;
+  teleportDistance?: number;
+  vignetteStrength?: number;
+  seated?: boolean;
+  grounded?: boolean;
+}
+
+export interface CameraCollisionResolution {
+  position?: Vec3;
+  target?: Vec3;
+  up?: Vec3;
+  blocked?: boolean;
+  metadata?: Record<string, unknown> | null;
+}
+
+export type CameraCollisionProvider = (
+  position: Vec3,
+  target: Vec3,
+  context: {
+    camera: CameraState;
+    viewMode: CameraViewMode;
+    rigMode: CameraRigMode;
+    pose: ResolvedCameraPose;
+    locomotion: ResolvedCameraLocomotionState;
+  }
+) => CameraCollisionResolution | null | undefined;
+
+export interface ResolvedCameraPose {
+  position: Vec3;
+  orientation: Quaternion;
+  forward: Vec3;
+  up: Vec3;
+  right: Vec3;
+  referenceSpaceType: string;
+  emulatedPosition: boolean;
+  views: CameraPoseView[];
+}
+
+export interface ResolvedCameraLocomotionState {
+  origin: Vec3;
+  anchor: Vec3 | null;
+  yaw: number;
+  pitch: number;
+  roll: number;
+  velocity: Vec3;
+  grounded: boolean;
+}
+
+export interface ResolvedCameraComfortProfile {
+  movementSpeed: number;
+  rotationSpeed: number;
+  snapTurnDegrees: number;
+  smoothTurnSpeed: number;
+  teleportDistance: number;
+  vignetteStrength: number;
+  seated: boolean;
+  grounded: boolean;
+}
 
 export interface CameraUniform {
   id: string;
@@ -215,11 +331,19 @@ export interface HeadLookIntent {
 
 export interface CameraRigFrame {
   viewMode: CameraViewMode;
+  rigMode: CameraRigMode;
   camera: CameraState;
   transform: CameraTransform;
   targetDistance: number;
   headLook: HeadLookIntent;
   constraints: Required<CameraRigConstraints>;
+  pose: ResolvedCameraPose;
+  locomotion: ResolvedCameraLocomotionState;
+  comfort: ResolvedCameraComfortProfile;
+  collision: {
+    blocked: boolean;
+    metadata: Record<string, unknown> | null;
+  };
 }
 
 export interface ResolveCameraRigFrameOptions {
@@ -236,6 +360,10 @@ export interface ResolveCameraRigFrameOptions {
   activeControl?: boolean;
   offset?: Vec3;
   touchedAt?: number;
+  pose?: CameraPose;
+  locomotion?: CameraLocomotionState;
+  comfort?: CameraComfortProfile;
+  collisionProvider?: CameraCollisionProvider;
 }
 
 export interface CreateRenderPlanOptions {
@@ -314,6 +442,19 @@ export function buildPrimaryRay(
   sample: PrimaryRaySample
 ): PrimaryRay;
 
+export function resolveCameraPose(
+  pose?: CameraPose,
+  fallbackTransform?: Partial<CameraTransform> | null
+): ResolvedCameraPose;
+
+export function resolveCameraLocomotionState(
+  locomotion?: CameraLocomotionState
+): ResolvedCameraLocomotionState;
+
+export function resolveCameraComfortProfile(
+  profile?: CameraComfortProfile
+): ResolvedCameraComfortProfile;
+
 export function applyCameraControl(
   camera: CameraDefinition,
   control: CameraControl,
@@ -344,12 +485,28 @@ export const cameraControlKinds: readonly [
   "pan",
   "truck",
   "dolly",
-  "look"
+  "look",
+  "roll"
 ];
-
+export const cameraRigModes: readonly [
+  "editor",
+  "spectator",
+  "third-person",
+  "first-person",
+  "top-down",
+  "isometric",
+  "inspect",
+  "xr-vr",
+  "xr-ar"
+];
 export const cameraViewModes: readonly [
   "editor",
   "spectator",
   "third-person",
-  "first-person"
+  "first-person",
+  "top-down",
+  "isometric",
+  "inspect",
+  "xr-vr",
+  "xr-ar"
 ];

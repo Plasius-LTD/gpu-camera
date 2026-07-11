@@ -4,3 +4,4 @@
 - [ADR 0002: Parallel Multiview Scheduling and Fast Camera Switching](./adr-0002-parallel-multiview-scheduling-and-fast-camera-switching.md)
 - [ADR 0003: Explicit Ray-Camera Uniforms for Renderer Integration](./adr-0003-explicit-ray-camera-uniforms.md)
 - [ADR 0004: Animated Character Camera Rigs](./adr-0004-animated-character-camera-rigs.md)
+- [ADR 0005: Pose-Aware Multimodal Camera Rigs](./adr-0005-pose-aware-multimodal-camera-rigs.md)
