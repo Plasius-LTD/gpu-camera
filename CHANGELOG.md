@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.18] - 2026-07-11
+
+- **Added**
   - Added pose-aware camera contracts for `CameraPose`,
     `CameraLocomotionState`, `CameraComfortProfile`, and
     `CameraCollisionProvider`.
@@ -291,3 +305,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.15]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.15
 [0.1.16]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.16
 [0.1.17]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.17
+[0.1.18]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.18
