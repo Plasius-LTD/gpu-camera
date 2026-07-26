@@ -11,12 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Updated to the surviving `@plasius/gpu-shared` 1.0.14 line and the fixed esbuild resolution.
 
 - **Fixed**
   - (placeholder)
 
 - **Security**
+  - Added fail-closed source and npm-package admission for the administrative contributor registry and pinned the CI/CD runtime to Node.js 24.18.0 LTS.
   - (placeholder)
 
 ## [0.1.18] - 2026-07-11
