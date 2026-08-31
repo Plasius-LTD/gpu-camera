@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (placeholder)
 
 - **Changed**
+  - Routed reviewed CI through the organisation's quarantined public runner group while retaining explicit platform labels.
   - Updated to `@plasius/gpu-shared@^1.1.1`, including the demo import-map entry required by its runtime `@plasius/schema` dependency, and refreshed the fixed esbuild resolution.
   - Bound npm publication to the exact prepared `main` commit after successful push-triggered CI.
   - Enabled exact-head manual CI dispatch for reviewed release validation.
