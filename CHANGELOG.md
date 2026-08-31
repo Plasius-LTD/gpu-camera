@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Changed**
   - Updated to the surviving `@plasius/gpu-shared` 1.0.14 line and the fixed esbuild resolution.
   - Bound npm publication to the exact prepared `main` commit after successful push-triggered CI.
+  - Enabled exact-head manual CI dispatch for reviewed release validation.
 
 - **Fixed**
   - (placeholder)
