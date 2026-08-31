@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enabled exact-head manual CI dispatch for reviewed release validation.
 
 - **Fixed**
+  - Disabled package-manager caching on self-hosted CI to prevent cache-save
+    cleanup stalls from blocking the validation queue.
   - (placeholder)
 
 - **Security**
