@@ -8,8 +8,6 @@
 [![Security Policy](https://img.shields.io/badge/security%20policy-yes-orange.svg)](./SECURITY.md)
 [![Changelog](https://img.shields.io/badge/changelog-md-blue.svg)](./CHANGELOG.md)
 
-[![license](https://img.shields.io/github/license/Plasius-LTD/gpu-camera)](./LICENSE)
-
 Framework-agnostic multi-camera runtime for Plasius GPU projects.
 
 `@plasius/gpu-camera` is the replacement track for `camera-controls` usage. It
