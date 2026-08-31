@@ -599,6 +599,10 @@ test("demo imports gpu-shared through the public package surface", () => {
     demoHtml,
     /"@plasius\/gpu-shared"\s*:\s*"\.\.\/node_modules\/@plasius\/gpu-shared\/dist\/index\.js"/,
   );
+  assert.match(
+    demoHtml,
+    /"@plasius\/schema"\s*:\s*"\.\.\/node_modules\/@plasius\/schema\/dist\/index\.js"/,
+  );
 });
 
 test("README documents the live 3D harbor validation demo", () => {
