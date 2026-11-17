@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-11-17
+
 ### Fixed
 
 - Restore automatic schema-template npm publication and validate renewed trusted publishing with a sealed package inventory.
@@ -256,3 +258,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.16]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.16
 [0.1.17]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.17
 [0.1.18]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.18
+
+[Unreleased]: https://github.com/Plasius-LTD/gpu-camera/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.19
