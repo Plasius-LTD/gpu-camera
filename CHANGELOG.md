@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **Added**
-  - (placeholder)
+### Fixed
+
+- Restore automatic schema-template npm publication and validate renewed trusted publishing with a sealed package inventory.
 
 - **Changed**
   - Refreshed compatible @plasius/* lockfile resolutions to the latest published releases.
@@ -20,13 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed**
   - Disabled package-manager caching on self-hosted CI to prevent cache-save
     cleanup stalls from blocking the validation queue.
-  - (placeholder)
 
 - **Security**
   - Pinned patched transitive npm dependencies to clear the current audit baseline.
   - Added fail-closed source and npm-package admission for the administrative contributor registry and pinned the CI/CD runtime to Node.js 24.18.0 LTS.
   - Removed the npm write-token path, added a fail-closed npm 11.5.1-or-newer OIDC guard, and denied fork PR code access to self-hosted CI.
-  - (placeholder)
 
 ## [0.1.18] - 2026-07-11
 
@@ -44,10 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     rig layer.
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.17] - 2026-07-02
 
@@ -58,18 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     control input, and head-look intent output for renderer animation systems.
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.16] - 2026-06-29
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
   - Refreshed the direct dependency baselines to `@plasius/gpu-shared@^1.0.1`,
@@ -77,24 +70,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `package-lock.json` from a clean Node 24 install.
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.15] - 2026-06-22
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.14] - 2026-06-22
 
@@ -104,55 +91,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     pixels or texels.
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.13] - 2026-06-22
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.10] - 2026-05-13
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.9] - 2026-05-13
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.8] - 2026-04-02
 
@@ -169,26 +141,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of an import-map-backed package import.
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.7] - 2026-03-23
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.6] - 2026-03-14
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
   - Updated GitHub Actions workflows to run JavaScript actions on Node 24,
@@ -196,80 +162,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the Codecov CLI.
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.5] - 2026-03-04
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.2] - 2026-03-01
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.1] - 2026-02-28
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.0] - 2026-02-11
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.0] - 2026-02-11
 
 - **Added**
-  - (placeholder)
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 
 ## [0.1.0] - 2026-02-11
 
@@ -294,13 +238,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Initial release.
 
 - **Changed**
-  - (placeholder)
 
 - **Fixed**
-  - (placeholder)
 
 - **Security**
-  - (placeholder)
 [0.1.1]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.1
 [0.1.2]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.2
 [0.1.5]: https://github.com/Plasius-LTD/gpu-camera/releases/tag/v0.1.5
