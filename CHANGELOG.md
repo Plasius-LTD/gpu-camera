@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Refresh npm dependencies and require patched glob traversal in coverage tooling.
+
 ## [0.1.19] - 2026-11-17
 
 ### Fixed
